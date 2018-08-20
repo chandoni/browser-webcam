@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>WebSocket demo</title>
+    </head>
+    <body>
+        <h1>Camera Stream</h1>
+         <img id="image" src="" alt="" height="480" width="640">
+        <script>
+            var buff;
+            var ws = new WebSocket("ws://127.0.0.1:5678/");
+                //messages = document.createElement('ul');
+
+
+            /*
+
+            PROBLEM: The onmessage() receives a "Blob" (bytes) that need to be converted to a jpg file.
+
+            I was not able to specify the 'type' property of the Blob that was received, it was empty.
+
+            The Blob is then converted to an ArrayBuffer using the FileReader API
+
+            The ArrayBuffer is then passed into the displayImage() function (notice that reader.result is the ArrayBuffer)
+
+            Finally, the ArrayBuffer is converted into a jpg file using the encode() function I found on
+            the stackoverflow website.
+
+            For now the images are being displayed in an html <img> element. I'm planning to change this to the <canvas>
+            in the next version.
+             */
+            ws.onmessage = function (event) {
+                var content = event.data;
+                //console.log(content instanceof Blob)  // returns true
+                if (content instanceof Blob) {
+                  console.log("Blob received.");
+                  var reader = new FileReader();
+
+                  reader.onloadend = function () {
+                    displayImage(reader.result);
+                    console.log(reader.result);   // logs the image's bytes in console
+                  }
+                  //reader.readAsBinaryString(content);
+                  reader.readAsArrayBuffer(content);
+                }
+            };
+
+            function displayImage(img_data) {
+              var arrayBuffer = img_data;
+              var bytes = new Uint8Array(arrayBuffer);
+
+              var image = document.getElementById('image');
+              image.src = 'data:image/jpeg;base64,'+encode(bytes);
+            }
+
+            // public method for encoding an Uint8Array to base64
+            function encode (input) {
+                var keyStr = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+                var output = "";
+                var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+                var i = 0;
+
+                while (i < input.length) {
+                    chr1 = input[i++];
+                    chr2 = i < input.length ? input[i++] : Number.NaN; // Not sure if the index
+                    chr3 = i < input.length ? input[i++] : Number.NaN; // checks are needed here
+
+                    enc1 = chr1 >> 2;
+                    enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+                    enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+                    enc4 = chr3 & 63;
+
+                    if (isNaN(chr2)) {
+                        enc3 = enc4 = 64;
+                    } else if (isNaN(chr3)) {
+                        enc4 = 64;
+                    }
+                    output += keyStr.charAt(enc1) + keyStr.charAt(enc2) +
+                              keyStr.charAt(enc3) + keyStr.charAt(enc4);
+                }
+                return output;
+            }
+        </script>
+    </body>
+</html>
